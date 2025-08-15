@@ -4,7 +4,7 @@ name = "ai.milvus"
 version = "1.0.0"
 authors = ["Ballerina"]
 keywords = ["milvus", "ai", "vector", "vector store", "vector search"]
-repository = "https://github.com/ballerina-platform/module-ballerinax-milvus"
+repository = "https://github.com/ballerina-platform/module-ballerinax-ai.milvus"
 license = ["Apache-2.0"]
 distribution = "2201.12.0"
 
