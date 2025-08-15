@@ -37,23 +37,23 @@ For detailed installation instructions, refer to the official Milvus documentati
 
 1. **Sign up to Zilliz Cloud**: Visit [Zilliz Cloud](https://cloud.zilliz.com/) and create an account.
 
-   <img src="https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-ai.milvus/main/ballerina/resources/sign_up.png" alt="Zilliz Cloud Sign Up" width="60%">
+   <img src="https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-milvus/main/ballerina/resources/sign_up.png" alt="Zilliz Cloud Sign Up" width="60%">
 
 2. **Set up your account**: Complete the account setup process with your details.
 
-   <img src="https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-ai.milvus/main/ballerina/resources/setup_account.png" alt="Account Setup" width="60%">
+   <img src="https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-milvus/main/ballerina/resources/setup_account.png" alt="Account Setup" width="60%">
 
 3. **Create a new cluster**: From the welcome page, select "Create Cluster" to start setting up your Milvus instance.
 
-   <img src="https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-ai.milvus/main/ballerina/resources/welcome_page.png" alt="Welcome Page" width="60%">
+   <img src="https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-milvus/main/ballerina/resources/welcome_page.png" alt="Welcome Page" width="60%">
 
 4. **Configure cluster details**: Provide the necessary configuration details for your cluster, including cluster name, cloud provider, and region.
 
-   <img src="https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-ai.milvus/main/ballerina/resources/create_cluster.png" alt="Create Cluster" width="60%">
+   <img src="https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-milvus/main/ballerina/resources/create_cluster.png" alt="Create Cluster" width="60%">
 
 5. **Download credentials**: Once your cluster is created, download the authentication credentials and connection details.
 
-   <img src="https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-ai.milvus/main/ballerina/resources/cluster_creation.png" alt="Cluster Creation Complete" width="60%">
+   <img src="https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-milvus/main/ballerina/resources/cluster_creation.png" alt="Cluster Creation Complete" width="60%">
 
 6. **Generate API Key**: Navigate to the API Keys section in your cluster dashboard and generate an API key for authentication.
 
