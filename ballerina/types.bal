@@ -16,7 +16,7 @@
 
 public type Configuration record {|
     # The name of the collection to use for the vector store
-    string collectionName;
+    string collectionName = "default";
     # The name of the field to contain the chunk details
     string chunkFieldName?;
     # The number of top similar vectors to return in queries
