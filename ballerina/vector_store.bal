@@ -106,10 +106,13 @@ public isolated class VectorStore {
                     record{}? output = item.outputFields;
                     matches.push({
                         id: item.primaryKey.toString(),
-                        embedding: output !is () ? output.hasKey("embedding") ? check output["embedding"].cloneWithType() : [] : [],
+                        embedding: output !is () 
+                            ? output.hasKey("embedding") ? check output["embedding"].cloneWithType() : [] : [],
                         chunk: {
-                            'type: output !is () ? output.hasKey("type") ? check output["type"].cloneWithType() : "" : "",
-                            content: output !is () ? output.hasKey("content") ? check output["content"].cloneWithType() : "" : ""
+                            'type: output !is () 
+                                ? output.hasKey("type") ? check output["type"].cloneWithType() : "" : "",
+                            content: output !is () 
+                                ? output.hasKey("content") ? check output["content"].cloneWithType() : "" : ""
                         },
                         similarityScore: item.similarityScore
                     });
