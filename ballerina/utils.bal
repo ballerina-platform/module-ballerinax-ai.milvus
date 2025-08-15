@@ -41,7 +41,8 @@ isolated function generateFilter(ai:MetadataFilters|ai:MetadataFilter node) retu
 isolated function generateValueField(json value) returns string {
     if value is string {
         return string `"${value}"`;
-    } else if value is json[] {
+    }
+    if value is json[] {
         string[] items = [];
         foreach json item in value {
             items.push(generateValueField(item));

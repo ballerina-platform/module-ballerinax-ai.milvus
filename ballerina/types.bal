@@ -14,13 +14,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
-# Configuration for the Milvus vector store.
-#
-# + collectionName - The name of the collection to use for the vector store.
-# + chunkFieldName - The name of the field to contain the chunk details
-# + topK - The number of top similar vectors to return in queries
 public type Configuration record {|
+    # The name of the collection to use for the vector store
     string collectionName;
+    # The name of the field to contain the chunk details
     string chunkFieldName?;
+    # The number of top similar vectors to return in queries
     int topK = 10;
 |};

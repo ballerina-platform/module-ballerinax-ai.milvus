@@ -40,10 +40,10 @@ public isolated class VectorStore {
     public isolated function init(
             @display {label: "Service URL"} string serviceUrl,
             @display {label: "Milvus Configuration"} Configuration config,
-            @display {label: "HTTP Configuration"} milvus:ConnectionConfig httpConfig = {}) returns ai:Error? {
+            @display {label: "HTTP Configuration"} *milvus:ConnectionConfig httpConfig) returns ai:Error? {
         milvus:Client|error milvusClient = new (serviceUrl, httpConfig);
         if milvusClient is error {
-            return error("Failed to initialize milvus vector store", milvusClient);
+            return error("failed to initialize milvus vector store", milvusClient);
         }
         self.milvusClient = milvusClient;
         self.config = config.cloneReadOnly();
@@ -77,7 +77,7 @@ public isolated class VectorStore {
                 });
             }
         } on fail error e {
-            return error("Failed to add vector entries", e);
+            return error("failed to add vector entries", e);
         }
     }
 
@@ -89,14 +89,14 @@ public isolated class VectorStore {
         lock {
             int|error index = int:fromString(id);
             if index is error {
-                return error ai:Error("Failed to convert id to int", index);
+                return error ai:Error("failed to convert id to int", index);
             }
             int|error deleteResult = self.milvusClient->delete({
                 collectionName: self.config.collectionName,
                 ids: [index]
             });
             if deleteResult is error {
-                return error("Failed to delete vector entry", deleteResult);
+                return error("failed to delete vector entry", deleteResult);
             }
         }
     }
@@ -118,27 +118,24 @@ public isolated class VectorStore {
                 filter: filterValue,
                 vectors: check query.cloneReadOnly().embedding.cloneWithType()
             });
-            ai:VectorMatch[] matches = [];
-            foreach milvus:SearchResult[] result in queryResult {
-                foreach milvus:SearchResult item in result {
-                    record{}? output = item.outputFields;
-                    matches.push({
-                        id: item.id.toString(),
-                        embedding: output !is () 
-                            ? output.hasKey("embedding") ? check output["embedding"].cloneWithType() : [] : [],
-                        chunk: {
-                            'type: output !is () 
-                                ? output.hasKey("type") ? check output["type"].cloneWithType() : "" : "",
-                            content: output !is () 
-                                ? output.hasKey("content") ? check output["content"].cloneWithType() : "" : ""
-                        },
-                        similarityScore: item.similarityScore
-                    });
-                }
-            }
+            ai:VectorMatch[] matches = from milvus:SearchResult[] result in queryResult
+                from milvus:SearchResult item in result
+                let record{}? output = item.outputFields
+                select {
+                    id: item.id.toString(),
+                    embedding: output !is () 
+                        ? output.hasKey("embedding") ? check output["embedding"].cloneWithType() : [] : [],
+                    chunk: {
+                        'type: output !is () 
+                            ? output.hasKey("type") ? check output["type"].cloneWithType() : "" : "",
+                        content: output !is () 
+                            ? output.hasKey("content") ? check output["content"].cloneWithType() : "" : ""
+                    },
+                    similarityScore: item.similarityScore
+                };
             finalMatches = matches.cloneReadOnly();
         } on fail error e {
-            return error("Failed to query vector store", e);
+            return error("failed to query vector store", e);
         }
         return finalMatches;
     }
