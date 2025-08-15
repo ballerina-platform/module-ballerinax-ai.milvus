@@ -32,6 +32,11 @@ public isolated class VectorStore {
 
     # Initializes the Milvus vector store with the given configuration.
     #
+    # + serviceUrl - The URL of the Milvus service.
+    # + config - The configuration for the Milvus vector store.
+    # + httpConfig - The HTTP configuration for the Milvus service.
+    # 
+    # + return - An error if the Milvus client initialization fails.
     public isolated function init(
             @display {label: "Service URL"} string serviceUrl,
             @display {label: "Milvus Configuration"} Configuration config,
@@ -49,6 +54,10 @@ public isolated class VectorStore {
         }
     }
 
+    # Adds the given vector entries to the Milvus vector store.
+    #
+    # + entries - An array of ai:VectorEntry values to be added
+    # + return - An ai:Error if vector addition fails, else ()
     public isolated function add(ai:VectorEntry[] entries) returns ai:Error? {
         if entries.length() == 0 {
             return;
@@ -67,11 +76,15 @@ public isolated class VectorStore {
                     }
                 });
             }
-        } on fail var e {
-            return error ai:Error("Failed to add vector entries", e);
+        } on fail error e {
+            return error("Failed to add vector entries", e);
         }
     }
 
+    # Deletes vector entries from the store by their reference document ID.
+    #
+    # + id - The ID of the vector entry to delete.
+    # + return - An `ai:Error` if the deletion fails; otherwise, `()` is returned indicating success.
     public isolated function delete(string id) returns ai:Error? {
         lock {
             int|error index = int:fromString(id);
@@ -83,11 +96,16 @@ public isolated class VectorStore {
                 ids: [index]
             });
             if deleteResult is error {
-                return error ai:Error("Failed to delete vector entry", deleteResult);
+                return error("Failed to delete vector entry", deleteResult);
             }
         }
     }
 
+    # Queries Milvus using the provided embedding vector and returns the top matches.
+    #
+    # + query - The query to search for. Should match the configured query mode
+    # 
+    # + return - A list of matching ai:VectorMatch values, or an ai:Error on failure
     public isolated function query(ai:VectorStoreQuery query) returns ai:VectorMatch[]|ai:Error {
         ai:VectorMatch[] finalMatches = [];
         lock {
@@ -119,8 +137,8 @@ public isolated class VectorStore {
                 }
             }
             finalMatches = matches.cloneReadOnly();
-        } on fail var e {
-            return error ai:Error("Failed to query vector store", e);
+        } on fail error e {
+            return error("Failed to query vector store", e);
         }
         return finalMatches;
     }
