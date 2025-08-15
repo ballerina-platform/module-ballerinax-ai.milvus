@@ -92,6 +92,6 @@ function testQuery() returns error? {
         }
     });
     if matches.length() > 0 {
-        test:assertEquals(matches[0].similarityScore, 1.0);
+        test:assertEquals(matches[0].id, id);
     }
 }
