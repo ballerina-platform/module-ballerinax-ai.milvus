@@ -10,9 +10,3 @@ distribution = "2201.12.0"
 
 [platform.java21]
 graalvmCompatible = false
-
-[[dependency]]
-org = "ballerinax"
-name = "milvus"
-version = "1.0.0"
-repository="local"
