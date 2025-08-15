@@ -1,9 +1,3 @@
-# Ballerina Milvus Vector Store Library
-
-[![Build](https://github.com/ballerina-platform/module-ballerinax-ai.milvus/workflows/CI/badge.svg)](https://github.com/ballerina-platform/module-ballerinax-ai.milvus/actions?query=workflow%3ACI)
-[![GitHub Last Commit](https://img.shields.io/github/last-commit/ballerina-platform/module-ballerinax-ai.milvus.svg)](https://github.com/ballerina-platform/module-ballerinax-ai.milvus/commits/master)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-
 ## Overview
 
 The Ballerina Milvus vector store module provides a comprehensive API for integrating with Milvus vector database, enabling efficient storage, retrieval, and management of high-dimensional vectors. This module implements the Ballerina AI `VectorStore` interface and supports multiple vector search algorithms including dense, sparse, and hybrid vector search modes.
