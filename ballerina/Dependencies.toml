@@ -141,9 +141,6 @@ dependencies = [
 	{org = "ballerina", name = "jballerina.java"},
 	{org = "ballerina", name = "lang.value"}
 ]
-modules = [
-	{org = "ballerina", packageName = "io", moduleName = "io"}
-]
 
 [[package]]
 org = "ballerina"
@@ -384,7 +381,6 @@ name = "ai.milvus"
 version = "1.0.0"
 dependencies = [
 	{org = "ballerina", name = "ai"},
-	{org = "ballerina", name = "io"},
 	{org = "ballerina", name = "test"},
 	{org = "ballerinax", name = "milvus"}
 ]
@@ -397,7 +393,6 @@ org = "ballerinax"
 name = "milvus"
 version = "1.0.0"
 dependencies = [
-	{org = "ballerina", name = "http"},
 	{org = "ballerina", name = "jballerina.java"}
 ]
 modules = [
