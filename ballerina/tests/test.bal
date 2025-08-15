@@ -79,12 +79,12 @@ function testQuery() returns error? {
             filters: [
                 {
                     key: "id",
-                    value: id,
+                    value: check int:fromString(id),
                     operator: ai:GREATER_THAN_OR_EQUAL
                 },
                 {
                     key: "id",
-                    value: id,
+                    value: check int:fromString(id),
                     operator: ai:LESS_THAN_OR_EQUAL
                 }
             ],

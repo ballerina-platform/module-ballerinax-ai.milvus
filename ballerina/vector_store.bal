@@ -58,7 +58,7 @@ public isolated class VectorStore {
                 check self.milvusClient->upsert({
                     collectionName: self.config.collectionName,
                     data: {
-                        id: check entry.id.cloneWithType(),
+                        id: check int:fromString(check entry.id.cloneWithType()),
                         vectors: check entry.embedding.cloneWithType(),
                         "properties": {
                             "type": entry.chunk.'type,
@@ -80,7 +80,7 @@ public isolated class VectorStore {
             }
             int|error deleteResult = self.milvusClient->delete({
                 collectionName: self.config.collectionName,
-                id: [index]
+                ids: [index]
             });
             if deleteResult is error {
                 return error ai:Error("Failed to delete vector entry", deleteResult);
@@ -94,7 +94,7 @@ public isolated class VectorStore {
             ai:MetadataFilters? filters = query.cloneReadOnly().filters;
             string filterValue = filters is ai:MetadataFilters ? generateFilter(filters) : "";
             check self.milvusClient->loadCollection(self.config.collectionName);
-            milvus:SearchResult[][] queryResult = self.milvusClient->search({
+            milvus:SearchResult[][] queryResult = check self.milvusClient->search({
                 collectionName: self.config.collectionName,
                 topK: self.topK,
                 filter: filterValue,
@@ -105,7 +105,7 @@ public isolated class VectorStore {
                 foreach milvus:SearchResult item in result {
                     record{}? output = item.outputFields;
                     matches.push({
-                        id: item.primaryKey.toString(),
+                        id: item.id.toString(),
                         embedding: output !is () 
                             ? output.hasKey("embedding") ? check output["embedding"].cloneWithType() : [] : [],
                         chunk: {
