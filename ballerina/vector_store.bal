@@ -30,15 +30,15 @@ public isolated class VectorStore {
     private final string chunkFieldName;
     private final int topK;
 
-    # Initializes the Weaviate vector store with the given configuration.
+    # Initializes the Milvus vector store with the given configuration.
     #
     public isolated function init(
             @display {label: "Service URL"} string serviceUrl,
-            @display {label: "Weaviate Configuration"} Configuration config,
+            @display {label: "Milvus Configuration"} Configuration config,
             @display {label: "HTTP Configuration"} milvus:ConnectionConfig httpConfig = {}) returns ai:Error? {
         milvus:Client|error milvusClient = new (serviceUrl, httpConfig);
         if milvusClient is error {
-            return error("Failed to initialize weaviate vector store", milvusClient);
+            return error("Failed to initialize milvus vector store", milvusClient);
         }
         self.milvusClient = milvusClient;
         self.config = config.cloneReadOnly();
