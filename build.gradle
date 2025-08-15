@@ -63,6 +63,17 @@ allprojects {
     }
 }
 
+subprojects {
+
+    configurations {
+        ballerinaStdLibs
+    }
+
+    dependencies {
+        ballerinaStdLibs "io.ballerina.stdlib:ai-ballerina:${ballerinaAiVersion}"
+    }
+}
+
 task build {
     dependsOn(":milvus-ballerina:build")
 }
