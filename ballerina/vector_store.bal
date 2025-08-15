@@ -103,12 +103,13 @@ public isolated class VectorStore {
             ai:VectorMatch[] matches = [];
             foreach milvus:SearchResult[] result in queryResult {
                 foreach milvus:SearchResult item in result {
+                    record{}? output = item.outputFields;
                     matches.push({
                         id: item.primaryKey.toString(),
-                        embedding: [],
+                        embedding: output !is () ? output.hasKey("embedding") ? check output["embedding"].cloneWithType() : [] : [],
                         chunk: {
-                            'type: "",
-                            content: ""
+                            'type: output !is () ? output.hasKey("type") ? check output["type"].cloneWithType() : "" : "",
+                            content: output !is () ? output.hasKey("content") ? check output["content"].cloneWithType() : "" : ""
                         },
                         similarityScore: item.similarityScore
                     });
