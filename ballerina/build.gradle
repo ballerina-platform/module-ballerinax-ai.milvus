@@ -1,0 +1,224 @@
+/*
+ * Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com)
+ *
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+import org.apache.tools.ant.taskdefs.condition.Os
+
+plugins {
+    id 'io.ballerina.plugin'
+}
+
+description = 'Ballerina - Milvus Connector'
+
+def packageName = "ai.milvus"
+def packageOrg = "ballerinax"
+def tomlVersion = stripBallerinaExtensionVersion("${project.version}")
+def ballerinaTomlFilePlaceHolder = new File("${project.rootDir}/build-config/resources/Ballerina.toml")
+def ballerinaTomlFile = new File("$project.projectDir/Ballerina.toml")
+
+def stripBallerinaExtensionVersion(String extVersion) {
+    if (extVersion.matches(project.ext.timestampedVersionRegex)) {
+        def splitVersion = extVersion.split('-')
+        if (splitVersion.length > 3) {
+            def strippedValues = splitVersion[0..-4]
+            return strippedValues.join('-')
+        } else {
+            return extVersion
+        }
+    } else {
+        return extVersion.replace("${project.ext.snapshotVersion}", "")
+    }
+}
+
+ballerina {
+    packageOrganization = packageOrg
+    module = packageName
+    testCoverageParam = "--code-coverage --coverage-format=xml"
+    isConnector = true
+    langVersion = ballerinaLangVersion
+}
+
+configurations {
+    externalJars
+    jbalTools
+    ballerinaStdLibs
+}
+
+dependencies {
+    jbalTools("org.ballerinalang:jballerina-tools:${ballerinaLangVersion}") {
+        transitive = false
+    }
+}
+
+task updateTomlFiles {
+    doLast {
+        def newBallerinaToml = ballerinaTomlFilePlaceHolder.text.replace("@project.version@", project.version)
+        newBallerinaToml = newBallerinaToml.replace("@toml.version@", tomlVersion)
+        ballerinaTomlFile.text = newBallerinaToml
+    }
+}
+
+task commitTomlFiles {
+    doLast {
+        project.exec {
+            ignoreExitValue true
+            if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+                commandLine 'cmd', '/c', "git commit -m \"[Automated] Update the toml files\" Ballerina.toml Dependencies.toml"
+            } else {
+                commandLine 'sh', '-c', "git commit -m '[Automated] Update the toml files' Ballerina.toml Dependencies.toml"
+            }
+        }
+    }
+}
+
+task startMilvusServer() {
+    doLast {
+        if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
+            def stdOut = new ByteArrayOutputStream()
+            // Check if Milvus container is already running
+            exec {
+                commandLine 'sh', '-c', "docker ps --filter name=milvus-standalone --filter status=running --format '{{.Names}}'"
+                standardOutput = stdOut
+                ignoreExitValue = true
+            }
+            if (!stdOut.toString().contains("milvus-standalone")) {
+                println "Starting Milvus server using docker compose."
+                def composeDir = "$project.projectDir/tests/resources/server"
+
+                // Ensure local volume directories exist and are writable to avoid Docker chown permission issues
+                def volumeDirs = [
+                        new File("${composeDir}/volumes/etcd"),
+                        new File("${composeDir}/volumes/minio"),
+                        new File("${composeDir}/volumes/milvus")
+                ]
+                volumeDirs.each { dir ->
+                    if (!dir.exists()) {
+                        dir.mkdirs()
+                    }
+                }
+                // Relax permissions for test environment (safe in CI/local only)
+                try {
+                    exec {
+                        workingDir composeDir
+                        commandLine 'sh', '-c', "chmod -R 777 volumes"
+                        ignoreExitValue = true
+                    }
+                } catch (Exception ignored) {
+                    // Best-effort; continue even if chmod isn't available
+                }
+                def runOut = new ByteArrayOutputStream()
+                exec {
+                    workingDir composeDir
+                    // Pass DOCKER_VOLUME_DIRECTORY explicitly to avoid ambiguity with relative paths
+                    commandLine 'sh', '-c', "DOCKER_VOLUME_DIRECTORY='${composeDir}' docker compose -f compose.yml up -d"
+                    standardOutput = runOut
+                    errorOutput = runOut
+                    ignoreExitValue = true
+                }
+                println runOut.toString()
+
+                // Wait until Milvus becomes healthy (up to 300 seconds)
+                println "Waiting for Milvus to become healthy..."
+                int waitedSeconds = 0
+                int timeoutSeconds = 300
+                boolean isHealthy = false
+                while (waitedSeconds < timeoutSeconds) {
+                    def healthOut = new ByteArrayOutputStream()
+                    exec {
+                        commandLine 'sh', '-c', "docker ps --filter name=milvus-standalone --format '{{.Status}}'"
+                        standardOutput = healthOut
+                        ignoreExitValue = true
+                    }
+                    def status = healthOut.toString().trim().toLowerCase()
+                    if (status.contains('healthy')) {
+                        isHealthy = true
+                        println "Milvus is healthy."
+                        break
+                    }
+                    Thread.sleep(1000)
+                    waitedSeconds++
+                }
+                if (!isHealthy) {
+                    println "Milvus did not become healthy within ${timeoutSeconds}s; tests may fail if the service isn't ready."
+                }
+            } else {
+                println "Milvus server is already started."
+            }
+        }
+    }
+}
+
+task stopMilvusServer() {
+    doLast {
+        if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
+            def stdOut = new ByteArrayOutputStream()
+            // Check if Milvus container is running
+            exec {
+                commandLine 'sh', '-c', "docker ps --filter name=milvus-standalone --filter status=running --format '{{.Names}}'"
+                standardOutput = stdOut
+                ignoreExitValue = true
+            }
+            if (stdOut.toString().contains("milvus-standalone")) {
+                println "Stopping Milvus server using docker compose."
+                def composeDir = "$project.projectDir/tests/resources/server"
+                def runOut = new ByteArrayOutputStream()
+                exec {
+                    workingDir composeDir
+                    commandLine 'sh', '-c', "docker compose -f compose.yml down"
+                    standardOutput = runOut
+                    errorOutput = runOut
+                    ignoreExitValue = true
+                }
+                println runOut.toString()
+            } else {
+                println "Milvus server is not started."
+            }
+        }
+    }
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            artifact source: createArtifactZip, extension: 'zip'
+        }
+    }
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/ballerina-platform/module-${packageOrg}-${packageName}")
+            credentials {
+                username = System.getenv("publishUser")
+                password = System.getenv("publishPAT")
+            }
+        }
+    }
+}
+
+clean {
+    delete 'build'
+}
+
+build.dependsOn "generatePomFileForMavenPublication"
+build.dependsOn startMilvusServer
+build.finalizedBy stopMilvusServer
+build.dependsOn copyToLib
+test.dependsOn startMilvusServer
+test.finalizedBy stopMilvusServer
+
+publish.dependsOn build
+publishToMavenLocal.dependsOn build
