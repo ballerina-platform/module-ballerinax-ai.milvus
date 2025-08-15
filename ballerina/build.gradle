@@ -98,12 +98,13 @@ task startMilvusServer() {
             if (!stdOut.toString().contains("milvus-standalone")) {
                 println "Starting Milvus server using docker compose."
                 def composeDir = "$project.projectDir/tests/resources/server"
-
+                // Use a volume directory OUTSIDE the Ballerina package to avoid permission issues during pack
+                def volumeBase = new File("${project.rootDir}/build/milvus")
                 // Ensure local volume directories exist and are writable to avoid Docker chown permission issues
                 def volumeDirs = [
-                        new File("${composeDir}/volumes/etcd"),
-                        new File("${composeDir}/volumes/minio"),
-                        new File("${composeDir}/volumes/milvus")
+                        new File("${volumeBase}/volumes/etcd"),
+                        new File("${volumeBase}/volumes/minio"),
+                        new File("${volumeBase}/volumes/milvus")
                 ]
                 volumeDirs.each { dir ->
                     if (!dir.exists()) {
@@ -113,8 +114,7 @@ task startMilvusServer() {
                 // Relax permissions for test environment (safe in CI/local only)
                 try {
                     exec {
-                        workingDir composeDir
-                        commandLine 'sh', '-c', "chmod -R 777 volumes"
+                        commandLine 'sh', '-c', "chmod -R 777 '${volumeBase.absolutePath}'"
                         ignoreExitValue = true
                     }
                 } catch (Exception ignored) {
@@ -124,7 +124,7 @@ task startMilvusServer() {
                 exec {
                     workingDir composeDir
                     // Pass DOCKER_VOLUME_DIRECTORY explicitly to avoid ambiguity with relative paths
-                    commandLine 'sh', '-c', "DOCKER_VOLUME_DIRECTORY='${composeDir}' docker compose -f compose.yml up -d"
+                    commandLine 'sh', '-c', "DOCKER_VOLUME_DIRECTORY='${volumeBase.absolutePath}' docker compose -f compose.yml up -d"
                     standardOutput = runOut
                     errorOutput = runOut
                     ignoreExitValue = true
@@ -175,10 +175,11 @@ task stopMilvusServer() {
             if (stdOut.toString().contains("milvus-standalone")) {
                 println "Stopping Milvus server using docker compose."
                 def composeDir = "$project.projectDir/tests/resources/server"
+                def volumeBase = new File("${project.rootDir}/build/milvus")
                 def runOut = new ByteArrayOutputStream()
                 exec {
                     workingDir composeDir
-                    commandLine 'sh', '-c', "docker compose -f compose.yml down"
+                    commandLine 'sh', '-c', "DOCKER_VOLUME_DIRECTORY='${volumeBase.absolutePath}' docker compose -f compose.yml down"
                     standardOutput = runOut
                     errorOutput = runOut
                     ignoreExitValue = true
