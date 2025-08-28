@@ -28,7 +28,8 @@ public isolated class VectorStore {
     private final milvus:Client milvusClient;
     private final Configuration config;
     private final string chunkFieldName;
-    private final int topK;
+    private final string primaryKeyField;
+    private final string[] outputFields;
 
     # Initializes the Milvus vector store with the given configuration.
     #
@@ -47,7 +48,8 @@ public isolated class VectorStore {
         }
         self.milvusClient = milvusClient;
         self.config = config.cloneReadOnly();
-        self.topK = config.topK;
+        self.primaryKeyField = config.primaryKeyField;
+        self.outputFields = config.additionalFields.cloneReadOnly();
         lock {
             string? chunkFieldName = self.config.cloneReadOnly().chunkFieldName;
             self.chunkFieldName = chunkFieldName is () ? "content" : chunkFieldName;
@@ -64,15 +66,19 @@ public isolated class VectorStore {
         }
         lock {
             foreach ai:VectorEntry entry in entries.cloneReadOnly() {
+                record {} properties = entry.chunk.metadata !is () ? check entry.chunk.metadata.cloneWithType() : {};
+                properties["type"] = entry.chunk.'type;
+                properties[self.chunkFieldName] = entry.chunk.content;
+
                 check self.milvusClient->upsert({
                     collectionName: self.config.collectionName,
                     data: {
-                        id: check int:fromString(check entry.id.cloneWithType()),
+                        primaryKey: {
+                            fieldName: self.primaryKeyField,
+                            value: check int:fromString(check entry.id.cloneWithType())
+                        },
                         vectors: check entry.embedding.cloneWithType(),
-                        "properties": {
-                            "type": entry.chunk.'type,
-                            [self.chunkFieldName]: entry.chunk.content
-                        }
+                        properties
                     }
                 });
             }
