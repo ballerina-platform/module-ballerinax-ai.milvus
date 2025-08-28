@@ -46,9 +46,11 @@ rootProject.name = "ballerinax-ai.${projectName}"
 
 include ":checkstyle"
 include ":${projectName}-ballerina"
+include ":${projectName}-examples"
 
 project(':checkstyle').projectDir = file("build-config${File.separator}checkstyle")
 project(":${projectName}-ballerina").projectDir = file('ballerina')
+project(":${projectName}-examples").projectDir = file('examples')
 
 gradleEnterprise {
     buildScan {
