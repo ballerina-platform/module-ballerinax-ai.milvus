@@ -25,8 +25,7 @@ VectorStore vectorStore = check new(
     serviceUrl = "http://localhost:19530", 
     config = {
         collectionName,
-        chunkFieldName: "content",
-        topK: 10
+        chunkFieldName: "content"
     }
 );
 milvus:Client milvusClient = check new(serviceUrl = "http://localhost:19530");
