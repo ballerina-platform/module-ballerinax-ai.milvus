@@ -89,9 +89,80 @@ public isolated class VectorStore {
 
     # Deletes vector entries from the store by their reference document ID.
     #
-    # + id - The ID of the vector entry to delete.
-    # + return - An `ai:Error` if the deletion fails; otherwise, `()` is returned indicating success.
-    public isolated function delete(string id) returns ai:Error? {
+    # + ids - The ID/s of the vector entries to delete
+    # + return - An `ai:Error` if the deletion fails; otherwise, `()` is returned indicating success
+    public isolated function delete(string|string[] ids) returns ai:Error? {
+        lock {
+            if ids is string {
+                return self.deleteEntry(ids);
+            }
+            foreach string id in ids.cloneReadOnly() {
+                return self.deleteEntry(id);
+            }
+        }
+    }
+
+    # Queries Milvus using the provided embedding vector and returns the top matches.
+    #
+    # + query - The query to search for. Should match the configured query mode
+    # + return - A list of matching ai:VectorMatch values, or an ai:Error on failure
+    public isolated function query(ai:VectorStoreQuery query) returns ai:VectorMatch[]|ai:Error {
+        lock {
+            ai:MetadataFilters? filters = query.cloneReadOnly().filters;
+            string filterValue = filters is ai:MetadataFilters ? generateFilter(filters) : "";
+            check self.milvusClient->loadCollection(self.config.collectionName);
+            if query.embedding is () && filters is () {
+                return error("Milvus does not allow empty embedding or filters at the same time.");
+            }
+            if query.embedding is () {
+                milvus:QueryResult[][] queryResult = check self.milvusClient->query({
+                    collectionName: self.config.collectionName,
+                    filter: filterValue,
+                    outputFields: self.outputFields
+                });
+                ai:VectorMatch[] matches = from milvus:QueryResult[] result in queryResult
+                    from milvus:QueryResult item in result
+                    select {
+                        id: item.hasKey("id") ? check item["id"].cloneWithType() : "",
+                        embedding: item.hasKey("vector") ? check item["vector"].cloneWithType() : [],
+                        chunk: {
+                            'type: item.hasKey("type") ? check item["type"].cloneWithType() : "",
+                            content: item.hasKey("content") ? check item["content"].cloneWithType() : ""
+                        },
+                        similarityScore: item.hasKey("similarityScore") ? 
+                            check item["similarityScore"].cloneWithType() : 0.0
+                    };
+                return matches.cloneReadOnly();
+            }
+            milvus:SearchResult[][] queryResult = check self.milvusClient->search({
+                collectionName: self.config.collectionName,
+                topK: query.topK,
+                filter: filterValue,
+                vectors: check query.cloneReadOnly().embedding.cloneWithType(),
+                outputFields: self.outputFields
+            });
+            ai:VectorMatch[] matches = from milvus:SearchResult[] result in queryResult
+                from milvus:SearchResult item in result
+                let record{}? output = item.outputFields
+                select {
+                    id: item.id.toString(),
+                    embedding: output !is () 
+                        ? output.hasKey("vector") ? check output["vector"].cloneWithType() : [] : [],
+                    chunk: {
+                        'type: output !is () 
+                            ? output.hasKey("type") ? check output["type"].cloneWithType() : "" : "",
+                        content: output !is () 
+                            ? output.hasKey("content") ? check output["content"].cloneWithType() : "" : ""
+                    },
+                    similarityScore: item.similarityScore
+                };
+            return matches.cloneReadOnly();
+        } on fail error e {
+            return error("failed to query vector store", e);
+        }
+    }
+
+    isolated function deleteEntry(string id) returns ai:Error? {
         lock {
             int|error index = int:fromString(id);
             if index is error {
@@ -105,44 +176,5 @@ public isolated class VectorStore {
                 return error("failed to delete vector entry", deleteResult);
             }
         }
-    }
-
-    # Queries Milvus using the provided embedding vector and returns the top matches.
-    #
-    # + query - The query to search for. Should match the configured query mode
-    # 
-    # + return - A list of matching ai:VectorMatch values, or an ai:Error on failure
-    public isolated function query(ai:VectorStoreQuery query) returns ai:VectorMatch[]|ai:Error {
-        ai:VectorMatch[] finalMatches = [];
-        lock {
-            ai:MetadataFilters? filters = query.cloneReadOnly().filters;
-            string filterValue = filters is ai:MetadataFilters ? generateFilter(filters) : "";
-            check self.milvusClient->loadCollection(self.config.collectionName);
-            milvus:SearchResult[][] queryResult = check self.milvusClient->search({
-                collectionName: self.config.collectionName,
-                topK: self.topK,
-                filter: filterValue,
-                vectors: check query.cloneReadOnly().embedding.cloneWithType()
-            });
-            ai:VectorMatch[] matches = from milvus:SearchResult[] result in queryResult
-                from milvus:SearchResult item in result
-                let record{}? output = item.outputFields
-                select {
-                    id: item.id.toString(),
-                    embedding: output !is () 
-                        ? output.hasKey("embedding") ? check output["embedding"].cloneWithType() : [] : [],
-                    chunk: {
-                        'type: output !is () 
-                            ? output.hasKey("type") ? check output["type"].cloneWithType() : "" : "",
-                        content: output !is () 
-                            ? output.hasKey("content") ? check output["content"].cloneWithType() : "" : ""
-                    },
-                    similarityScore: item.similarityScore
-                };
-            finalMatches = matches.cloneReadOnly();
-        } on fail error e {
-            return error("failed to query vector store", e);
-        }
-        return finalMatches;
     }
 }
