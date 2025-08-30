@@ -89,16 +89,18 @@ public isolated class VectorStore {
 
     # Deletes vector entries from the store by their reference document ID.
     #
-    # + ids - The ID/s of the vector entries to delete
-    # + return - An `ai:Error` if the deletion fails; otherwise, `()` is returned indicating success
+    # + ids - One or more identifiers of the vector entries to delete
+    # + return - An `ai:Error` if the deletion fails, otherwise `()` indicating success
     public isolated function delete(string|string[] ids) returns ai:Error? {
         lock {
-            if ids is string {
-                return self.deleteEntry(ids);
-            }
-            foreach string id in ids.cloneReadOnly() {
-                return self.deleteEntry(id);
-            }
+            string[] indexArray = ids is string[] ? ids.cloneReadOnly() : [ids.cloneReadOnly()];
+            int[] indexes = indexArray.'map(id => check int:fromString(id));
+            int _ = check self.milvusClient->delete({
+                collectionName: self.config.collectionName,
+                ids: indexes
+            });
+        } on fail error err {
+            return error("failed to delete vector entries", err);
         }
     }
 
@@ -159,22 +161,6 @@ public isolated class VectorStore {
             return matches.cloneReadOnly();
         } on fail error e {
             return error("failed to query vector store", e);
-        }
-    }
-
-    isolated function deleteEntry(string id) returns ai:Error? {
-        lock {
-            int|error index = int:fromString(id);
-            if index is error {
-                return error ai:Error("failed to convert id to int", index);
-            }
-            int|error deleteResult = self.milvusClient->delete({
-                collectionName: self.config.collectionName,
-                ids: [index]
-            });
-            if deleteResult is error {
-                return error("failed to delete vector entry", deleteResult);
-            }
         }
     }
 }
