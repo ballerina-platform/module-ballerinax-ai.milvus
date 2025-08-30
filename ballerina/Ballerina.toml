@@ -16,9 +16,3 @@ org="ballerinax"
 name="milvus"
 version="1.0.1"
 repository="local"
-
-[[dependency]]
-org="ballerina"
-name="ai"
-version="1.5.0"
-repository="local"
