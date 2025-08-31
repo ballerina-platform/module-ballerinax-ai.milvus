@@ -113,6 +113,9 @@ public isolated class VectorStore {
             ai:MetadataFilters? filters = query.cloneReadOnly().filters;
             string filterValue = filters is ai:MetadataFilters ? generateFilter(filters) : "";
             check self.milvusClient->loadCollection(self.config.collectionName);
+            if query.topK == 0 {
+                return error("Invalid value for topK. The value cannot be 0.");
+            }
             if query.embedding is () && filters is () {
                 return error("Milvus does not allow empty embedding or filters at the same time.");
             }
