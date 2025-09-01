@@ -40,8 +40,12 @@ public isolated class VectorStore {
     # + return - An error if the Milvus client initialization fails.
     public isolated function init(
             @display {label: "Service URL"} string serviceUrl,
+            @display {label: "API Key"} string apiKey, 
             @display {label: "Milvus Configuration"} Configuration config,
-            @display {label: "HTTP Configuration"} *milvus:ConnectionConfig httpConfig) returns ai:Error? {
+            @display {label: "HTTP Configuration"} milvus:ConnectionConfig httpConfig = {}) returns ai:Error? {
+        httpConfig.authConfig = {
+            token: apiKey
+        };
         milvus:Client|error milvusClient = new (serviceUrl, httpConfig);
         if milvusClient is error {
             return error("failed to initialize milvus vector store", milvusClient);
