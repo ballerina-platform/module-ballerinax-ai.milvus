@@ -22,7 +22,8 @@ string collectionName = "test_collection";
 string id  = "10001";
 
 VectorStore vectorStore = check new(
-    serviceUrl = "http://localhost:19530", 
+    serviceUrl = "http://localhost:19530",
+    apiKey = "",
     config = {
         collectionName,
         chunkFieldName: "content"
