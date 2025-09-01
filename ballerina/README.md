@@ -31,7 +31,7 @@ For detailed installation instructions, refer to the official Milvus documentati
 
 1. **Sign up to Zilliz Cloud**: Visit [Zilliz Cloud](https://cloud.zilliz.com/) and create an account.
 
-   <img src="https://raw.githubusercontent.com/ballerina-platform/module-ballerinax.milvus/main/ballerina/resources/sign_up.png" alt="Zilliz Cloud Sign Up" width="60%">
+   <img src="https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-milvus/main/ballerina/resources/sign_up.png" alt="Zilliz Cloud Sign Up" width="60%">
 
 2. **Set up your account**: Complete the account setup process with your details.
 
@@ -64,14 +64,10 @@ import ballerinax/ai.milvus;
 
 ```ballerina
 ai:VectorStore vectorStore = check new milvus:VectorStore(
-    serviceUrl = "add-milvus-service-url", 
+    serviceUrl = "add-milvus-service-url",
+    apiKey = "add-api-key",
     config = {
         collectionName: "add-collection-name"
-    }, 
-    httpConfig = {
-        auth: {
-            token: "add-access-token" // required for Milvus Cloud
-        }
     }
 );
 ```
@@ -82,7 +78,7 @@ ai:VectorStore vectorStore = check new milvus:VectorStore(
 ai:Error? result = vectorStore.add(
     [
         {
-            id: uuid:createRandomUuid(),
+            id: "1",
             embedding: [1.0, 2.0, 3.0],
             chunk: {
                 'type: "text", 
@@ -99,3 +95,10 @@ ai:VectorMatch[]|ai:Error matches = vectorStore.query({
     }
 });
 ```
+
+## Examples
+
+The Ballerina Milvus vector store module provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-ai.milvus/tree/main/examples).
+
+1. [Movie recommendation system](https://github.com/ballerina-platform/module-ballerinax-ai.milvus/tree/main/examples/movie-recommendation-system)
+   This example shows how to use Milvus vector store APIs to implement a movie recommendation system that stores movie embeddings and queries them to find similar movies based on vector similarity and metadata filtering.
