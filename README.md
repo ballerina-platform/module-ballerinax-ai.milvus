@@ -88,7 +88,7 @@ ai:VectorStore vectorStore = check new milvus:VectorStore(
 ai:Error? result = vectorStore.add(
     [
         {
-            id: uuid:createRandomUuid(),
+            id: "1",
             embedding: [1.0, 2.0, 3.0],
             chunk: {
                 'type: "text", 

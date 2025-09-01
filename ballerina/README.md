@@ -31,7 +31,7 @@ For detailed installation instructions, refer to the official Milvus documentati
 
 1. **Sign up to Zilliz Cloud**: Visit [Zilliz Cloud](https://cloud.zilliz.com/) and create an account.
 
-   <img src="https://raw.githubusercontent.com/ballerina-platform/module-ballerinax.milvus/main/ballerina/resources/sign_up.png" alt="Zilliz Cloud Sign Up" width="60%">
+   <img src="https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-milvus/main/ballerina/resources/sign_up.png" alt="Zilliz Cloud Sign Up" width="60%">
 
 2. **Set up your account**: Complete the account setup process with your details.
 
@@ -82,7 +82,7 @@ ai:VectorStore vectorStore = check new milvus:VectorStore(
 ai:Error? result = vectorStore.add(
     [
         {
-            id: uuid:createRandomUuid(),
+            id: "1",
             embedding: [1.0, 2.0, 3.0],
             chunk: {
                 'type: "text", 
