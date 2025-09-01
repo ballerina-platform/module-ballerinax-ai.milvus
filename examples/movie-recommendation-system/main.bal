@@ -20,7 +20,7 @@ import ballerinax/ai.milvus;
 
 configurable string serviceUrl = ?;
 configurable string collectionName = ?;
-configurable string token = ?;
+configurable string apiKey = ?;
 
 type MovieEntry record {
     string id;
@@ -34,9 +34,7 @@ type MovieEntry record {
 public function main() returns error? {
     milvus:VectorStore vectorStore = check new (
         serviceUrl,
-        authConfig = {
-            token
-        },
+        apiKey,
         config = {
             collectionName,
             primaryKeyField: "primary_key"
