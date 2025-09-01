@@ -64,14 +64,10 @@ import ballerinax/ai.milvus;
 
 ```ballerina
 ai:VectorStore vectorStore = check new milvus:VectorStore(
-    serviceUrl = "add-milvus-service-url", 
+    serviceUrl = "add-milvus-service-url",
+    apiKey = "add-api-key",
     config = {
         collectionName: "add-collection-name"
-    }, 
-    httpConfig = {
-        auth: {
-            token: "add-access-token" // required for Milvus Cloud
-        }
     }
 );
 ```
@@ -99,3 +95,10 @@ ai:VectorMatch[]|ai:Error matches = vectorStore.query({
     }
 });
 ```
+
+## Examples
+
+The Ballerina Milvus vector store module provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-ai.milvus/tree/main/examples).
+
+1. [Movie recommendation system](https://github.com/ballerina-platform/module-ballerinax-ai.milvus/tree/main/examples/movie-recommendation-system)
+   This example shows how to use Milvus vector store APIs to implement a movie recommendation system that stores movie embeddings and queries them to find similar movies based on vector similarity and metadata filtering.
