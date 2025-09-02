@@ -70,7 +70,7 @@ task buildExamples {
     }
 }
 
-buildExamples.dependsOn ":milvus-ballerina:build"
-testExamples.dependsOn ":milvus-ballerina:build"
+buildExamples.dependsOn ":ai.milvus-ballerina:build"
+testExamples.dependsOn ":ai.milvus-ballerina:build"
 
 build.dependsOn buildExamples
