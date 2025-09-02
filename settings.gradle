@@ -41,16 +41,15 @@ plugins {
     id "com.gradle.enterprise" version "3.2"
 }
 
-def projectName = 'milvus'
-rootProject.name = "ballerinax-ai.${projectName}"
+rootProject.name = "module-balerinax-ai.milvus"
 
 include ":checkstyle"
-include ":${projectName}-ballerina"
-include ":${projectName}-examples"
+include ":ai.milvus-ballerina"
+include ":ai.milvus-examples"
 
 project(':checkstyle').projectDir = file("build-config${File.separator}checkstyle")
-project(":${projectName}-ballerina").projectDir = file('ballerina')
-project(":${projectName}-examples").projectDir = file('examples')
+project(":ai.milvus-ballerina").projectDir = file('ballerina')
+project(":ai.milvus-examples").projectDir = file('examples')
 
 gradleEnterprise {
     buildScan {
