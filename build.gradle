@@ -64,8 +64,8 @@ allprojects {
 }
 
 task build {
-    dependsOn(":milvus-ballerina:build")
-    dependsOn(":milvus-examples:build")
+    dependsOn(":ai.milvus-ballerina:build")
+    dependsOn(":ai.milvus-examples:build")
 }
 
 def moduleVersion = project.version.replace("-SNAPSHOT", "")
