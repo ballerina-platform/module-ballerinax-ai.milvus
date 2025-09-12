@@ -146,24 +146,12 @@ public isolated class VectorStore {
                 ai:VectorMatch[] matches = [];
                 foreach milvus:QueryResult[] result in queryResult {
                     foreach milvus:QueryResult item in result {
-                        record {} metadata = {};
-                        foreach string fieldName in self.outputFields {
-                            if ["content", "type", "vector"].indexOf(fieldName) is () {
-                                time:Utc|error value = time:utcFromString(item[fieldName].toString());
-                                metadata[fieldName] = value is error ? item[fieldName] : value;
-                            }
-                        }
-                        ai:TextChunk chunk = {
-                            content: item.hasKey("content") ? check item["content"].cloneWithType() : "",
-                            metadata: check metadata.cloneWithType()
-                        };
-                        matches.push({
-                            id: item.hasKey("id") ? check item["id"].cloneWithType() : "",
-                            embedding: item.hasKey("vector") ? check item["vector"].cloneWithType() : [],
-                            chunk,
-                            similarityScore: item.hasKey("similarityScore") ?
-                                check item["similarityScore"].cloneWithType() : 0.0
-                        });
+                        string id = item.hasKey("id") ? check item["id"].cloneWithType() : "";
+                        float similarityScore = item.hasKey("similarityScore") ?
+                            check item["similarityScore"].cloneWithType() : 0.0;
+                        ai:VectorMatch vectorMatch = 
+                            check buildVectorMatch(id, item, similarityScore, self.outputFields.cloneReadOnly());
+                        matches.push(vectorMatch);
                     }
                 }
                 return matches.cloneReadOnly();
@@ -178,26 +166,9 @@ public isolated class VectorStore {
             ai:VectorMatch[] matches = [];
             foreach milvus:SearchResult[] result in queryResult {
                 foreach milvus:SearchResult item in result {
-                    record {}? output = item.outputFields;
-                    record {} metadata = {};
-                    foreach string fieldName in self.outputFields {
-                        if ["content", "type", "vector"].indexOf(fieldName) is () {
-                            time:Utc|error value = time:utcFromString(output[fieldName].toString());
-                            metadata[fieldName] = value is error ? output[fieldName] : value;
-                        }
-                    }
-                    ai:TextChunk chunk = {
-                        content: output !is ()
-                            ? output.hasKey("content") ? check output["content"].cloneWithType() : "" : "",
-                        metadata: check metadata.cloneWithType()
-                    };
-                    matches.push({
-                        id: item.id.toString(),
-                        embedding: output !is ()
-                            ? output.hasKey("vector") ? check output["vector"].cloneWithType() : [] : [],
-                        chunk,
-                        similarityScore: item.similarityScore
-                    });
+                    ai:VectorMatch vectorMatch = check buildVectorMatch(item.id.toString(), item.outputFields, 
+                        item.similarityScore, self.outputFields.cloneReadOnly());
+                    matches.push(vectorMatch);
                 }
             }
             return matches.cloneReadOnly();

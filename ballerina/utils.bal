@@ -71,3 +71,26 @@ isolated function combineElements(string[] parts, string separator) returns stri
     }
     return result;
 }
+
+isolated function buildVectorMatch(string id, record {}? outputData, 
+                                   float similarityScore, string[] outputFields) returns ai:VectorMatch|error {
+    record {} metadata = {};    
+    foreach string fieldName in outputFields {
+        if ["content", "type", "vector"].indexOf(fieldName) is () && outputData !is () && outputData.hasKey(fieldName) {
+            time:Utc|error value = time:utcFromString(outputData[fieldName].toString());
+            metadata[fieldName] = value is error ? outputData[fieldName] : value;
+        }
+    }
+    ai:TextChunk chunk = {
+        content: outputData !is () && outputData.hasKey("content") ? 
+            check outputData["content"].cloneWithType() : "",
+        metadata: check metadata.cloneWithType()
+    };
+    return {
+        id: id,
+        embedding: outputData !is () && outputData.hasKey("vector") ? 
+            check outputData["vector"].cloneWithType() : [],
+        chunk,
+        similarityScore: similarityScore
+    };
+}
