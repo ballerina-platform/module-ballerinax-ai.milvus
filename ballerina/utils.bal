@@ -15,6 +15,7 @@
 // under the License.
 
 import ballerina/ai;
+import ballerina/time;
 
 isolated function generateFilter(ai:MetadataFilters|ai:MetadataFilter node) returns string {
     if node is ai:MetadataFilter {
@@ -39,6 +40,9 @@ isolated function generateFilter(ai:MetadataFilters|ai:MetadataFilter node) retu
 }
 
 isolated function generateValueField(json value) returns string {
+    if value is time:Utc {
+        return string `"${time:utcToString(value)}"`;
+    }
     if value is string {
         return string `"${value}"`;
     }

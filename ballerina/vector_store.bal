@@ -15,6 +15,7 @@
 // under the License.
 
 import ballerina/ai;
+import ballerina/time;
 import ballerinax/milvus;
 
 # Milvus Vector Store implementation with support for Dense, Sparse, and Hybrid vector search modes.
@@ -29,7 +30,7 @@ public isolated class VectorStore {
     private final Configuration config;
     private final string chunkFieldName;
     private final string primaryKeyField;
-    private final string[] outputFields;
+    private string[] outputFields = ["content", "type", "vector"];
 
     # Initializes the Milvus vector store with the given configuration.
     #
@@ -40,7 +41,7 @@ public isolated class VectorStore {
     # + return - An error if the Milvus client initialization fails.
     public isolated function init(
             @display {label: "Service URL"} string serviceUrl,
-            @display {label: "API Key"} string apiKey, 
+            @display {label: "API Key"} string apiKey,
             @display {label: "Milvus Configuration"} Configuration config,
             @display {label: "HTTP Configuration"} milvus:ConnectionConfig httpConfig = {}) returns ai:Error? {
         httpConfig.authConfig = {
@@ -53,8 +54,10 @@ public isolated class VectorStore {
         self.milvusClient = milvusClient;
         self.config = config.cloneReadOnly();
         self.primaryKeyField = config.primaryKeyField;
-        self.outputFields = config.additionalFields.cloneReadOnly();
         lock {
+            foreach string item in config.additionalFields.cloneReadOnly() {
+                self.outputFields.push(item);
+            }
             string? chunkFieldName = self.config.cloneReadOnly().chunkFieldName;
             self.chunkFieldName = chunkFieldName is () ? "content" : chunkFieldName;
         }
@@ -70,10 +73,21 @@ public isolated class VectorStore {
         }
         lock {
             foreach ai:VectorEntry entry in entries.cloneReadOnly() {
-                record {} properties = entry.chunk.metadata !is () ? check entry.chunk.metadata.cloneWithType() : {};
+                record {} properties = {};
                 properties["type"] = entry.chunk.'type;
                 properties[self.chunkFieldName] = entry.chunk.content;
-
+                ai:Metadata? metadata = entry.chunk.metadata;
+                if metadata !is () {
+                    foreach string item in metadata.keys() {
+                        anydata metadataValue = metadata.get(item);
+                        if metadataValue is time:Utc {
+                            string utcToString = time:utcToString(metadataValue);
+                            properties[item] = utcToString;
+                        } else {
+                            properties[item] = metadataValue;
+                        }
+                    }
+                }
                 check self.milvusClient->upsert({
                     collectionName: self.config.collectionName,
                     data: {
@@ -129,18 +143,29 @@ public isolated class VectorStore {
                     filter: filterValue,
                     outputFields: self.outputFields
                 });
-                ai:VectorMatch[] matches = from milvus:QueryResult[] result in queryResult
-                    from milvus:QueryResult item in result
-                    select {
-                        id: item.hasKey("id") ? check item["id"].cloneWithType() : "",
-                        embedding: item.hasKey("vector") ? check item["vector"].cloneWithType() : [],
-                        chunk: {
-                            'type: item.hasKey("type") ? check item["type"].cloneWithType() : "",
-                            content: item.hasKey("content") ? check item["content"].cloneWithType() : ""
-                        },
-                        similarityScore: item.hasKey("similarityScore") ? 
-                            check item["similarityScore"].cloneWithType() : 0.0
-                    };
+                ai:VectorMatch[] matches = [];
+                foreach milvus:QueryResult[] result in queryResult {
+                    foreach milvus:QueryResult item in result {
+                        record {} metadata = {};
+                        foreach string fieldName in self.outputFields {
+                            if ["content", "type", "vector"].indexOf(fieldName) is () {
+                                time:Utc|error value = time:utcFromString(item[fieldName].toString());
+                                metadata[fieldName] = value is error ? item[fieldName] : value;
+                            }
+                        }
+                        ai:TextChunk chunk = {
+                            content: item.hasKey("content") ? check item["content"].cloneWithType() : "",
+                            metadata: check metadata.cloneWithType()
+                        };
+                        matches.push({
+                            id: item.hasKey("id") ? check item["id"].cloneWithType() : "",
+                            embedding: item.hasKey("vector") ? check item["vector"].cloneWithType() : [],
+                            chunk,
+                            similarityScore: item.hasKey("similarityScore") ?
+                                check item["similarityScore"].cloneWithType() : 0.0
+                        });
+                    }
+                }
                 return matches.cloneReadOnly();
             }
             milvus:SearchResult[][] queryResult = check self.milvusClient->search({
@@ -150,21 +175,31 @@ public isolated class VectorStore {
                 vectors: check query.cloneReadOnly().embedding.cloneWithType(),
                 outputFields: self.outputFields
             });
-            ai:VectorMatch[] matches = from milvus:SearchResult[] result in queryResult
-                from milvus:SearchResult item in result
-                let record{}? output = item.outputFields
-                select {
-                    id: item.id.toString(),
-                    embedding: output !is () 
-                        ? output.hasKey("vector") ? check output["vector"].cloneWithType() : [] : [],
-                    chunk: {
-                        'type: output !is () 
-                            ? output.hasKey("type") ? check output["type"].cloneWithType() : "" : "",
-                        content: output !is () 
-                            ? output.hasKey("content") ? check output["content"].cloneWithType() : "" : ""
-                    },
-                    similarityScore: item.similarityScore
-                };
+            ai:VectorMatch[] matches = [];
+            foreach milvus:SearchResult[] result in queryResult {
+                foreach milvus:SearchResult item in result {
+                    record {}? output = item.outputFields;
+                    record {} metadata = {};
+                    foreach string fieldName in self.outputFields {
+                        if ["content", "type", "vector"].indexOf(fieldName) is () {
+                            time:Utc|error value = time:utcFromString(output[fieldName].toString());
+                            metadata[fieldName] = value is error ? output[fieldName] : value;
+                        }
+                    }
+                    ai:TextChunk chunk = {
+                        content: output !is ()
+                            ? output.hasKey("content") ? check output["content"].cloneWithType() : "" : "",
+                        metadata: check metadata.cloneWithType()
+                    };
+                    matches.push({
+                        id: item.id.toString(),
+                        embedding: output !is ()
+                            ? output.hasKey("vector") ? check output["vector"].cloneWithType() : [] : [],
+                        chunk,
+                        similarityScore: item.similarityScore
+                    });
+                }
+            }
             return matches.cloneReadOnly();
         } on fail error e {
             return error("failed to query vector store", e);
