@@ -14,22 +14,26 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import ballerina/test;
 import ballerina/ai;
+import ballerina/test;
+import ballerina/time;
 import ballerinax/milvus;
 
 string collectionName = "test_collection";
-string id  = "10001";
+string id = "10001";
+string fileName = "test.txt";
+time:Utc createdAt = time:utcNow();
 
-VectorStore vectorStore = check new(
+VectorStore vectorStore = check new (
     serviceUrl = "http://localhost:19530",
     apiKey = "",
     config = {
         collectionName,
-        chunkFieldName: "content"
+        chunkFieldName: "content",
+        additionalFields: ["fileName", "createdAt"]
     }
 );
-milvus:Client milvusClient = check new(serviceUrl = "http://localhost:19530");
+milvus:Client milvusClient = check new (serviceUrl = "http://localhost:19530");
 
 @test:BeforeSuite
 function beforeSuite() returns error? {
@@ -48,8 +52,12 @@ function testInsert() returns error? {
             id,
             embedding: [0.1, 0.2],
             chunk: {
-                'type: "text", 
-                content: "test"
+                'type: "text",
+                content: "test",
+                metadata: {
+                    fileName,
+                    createdAt
+                }
             }
         }
     ]);
@@ -78,14 +86,14 @@ function testQuery() returns error? {
         filters: {
             filters: [
                 {
-                    key: "id",
-                    value: check int:fromString(id),
-                    operator: ai:GREATER_THAN_OR_EQUAL
+                    key: "fileName",
+                    value: fileName,
+                    operator: ai:EQUAL
                 },
                 {
-                    key: "id",
-                    value: check int:fromString(id),
-                    operator: ai:LESS_THAN_OR_EQUAL
+                    key: "createdAt",
+                    value: createdAt,
+                    operator: ai:EQUAL
                 }
             ],
             condition: ai:AND
@@ -93,5 +101,7 @@ function testQuery() returns error? {
     });
     if matches.length() > 0 {
         test:assertEquals(matches[0].id, id);
+        test:assertEquals(matches[0].chunk.metadata?.fileName, fileName);
+        test:assertEquals(matches[0].chunk.metadata?.createdAt, createdAt);
     }
 }
