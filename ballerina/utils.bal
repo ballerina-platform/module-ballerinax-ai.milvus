@@ -16,10 +16,11 @@
 
 import ballerina/ai;
 import ballerina/time;
+import ballerina/data.jsondata;
 
 isolated function generateFilter(ai:MetadataFilters|ai:MetadataFilter node) returns string {
     if node is ai:MetadataFilter {
-        return string ` ${node.key} ${node.operator} ${generateValueField(node.value)} `;
+        return string ` metadata["${node.key}"] ${node.operator} ${generateValueField(node.value)} `;
     }
     string condition = string ` ${node.condition.toString().toUpperAscii()} `;
     string[] filters = [];
@@ -72,13 +73,17 @@ isolated function combineElements(string[] parts, string separator) returns stri
     return result;
 }
 
+type MetadataValues record {};
+
 isolated function buildVectorMatch(string id, record {}? outputData, 
                                    float similarityScore, string[] outputFields) returns ai:VectorMatch|error {
-    record {} metadata = {};    
-    foreach string fieldName in outputFields {
-        if ["content", "type", "vector"].indexOf(fieldName) is () && outputData !is () && outputData.hasKey(fieldName) {
-            time:Utc|error value = time:utcFromString(outputData[fieldName].toString());
-            metadata[fieldName] = value is error ? outputData[fieldName] : value;
+    record {} metadata = {};
+    MetadataValues? metadataValues = check jsondata:parseString(outputData["metadata"].toString());
+    if metadataValues !is () {
+        foreach string fieldName in metadataValues.keys() {
+            anydata metadataValue = metadataValues[fieldName];
+            time:Utc|time:Error utcFromString = time:utcFromString(metadataValue.toString());
+            metadata[fieldName] = utcFromString is time:Utc ? utcFromString : metadataValue;           
         }
     }
     ai:TextChunk chunk = {

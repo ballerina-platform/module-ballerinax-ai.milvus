@@ -15,8 +15,8 @@
 // under the License.
 
 import ballerina/ai;
-import ballerina/time;
 import ballerinax/milvus;
+import ballerina/time;
 
 # Milvus Vector Store implementation with support for Dense, Sparse, and Hybrid vector search modes.
 #
@@ -30,7 +30,7 @@ public isolated class VectorStore {
     private final Configuration config;
     private final string chunkFieldName;
     private final string primaryKeyField;
-    private string[] outputFields = ["content", "type", "vector"];
+    private string[] outputFields = ["content", "type", "vector", "metadata"];
 
     # Initializes the Milvus vector store with the given configuration.
     #
@@ -77,17 +77,19 @@ public isolated class VectorStore {
                 properties["type"] = entry.chunk.'type;
                 properties[self.chunkFieldName] = entry.chunk.content;
                 ai:Metadata? metadata = entry.chunk.metadata;
+                record {} metadataValues = {};
                 if metadata !is () {
                     foreach string item in metadata.keys() {
                         anydata metadataValue = metadata.get(item);
                         if metadataValue is time:Utc {
                             string utcToString = time:utcToString(metadataValue);
-                            properties[item] = utcToString;
+                            metadataValues[item] = utcToString;
                         } else {
-                            properties[item] = metadataValue;
+                            metadataValues[item] = metadataValue;
                         }
                     }
                 }
+                properties["metadata"] = metadataValues;
                 check self.milvusClient->upsert({
                     collectionName: self.config.collectionName,
                     data: {
