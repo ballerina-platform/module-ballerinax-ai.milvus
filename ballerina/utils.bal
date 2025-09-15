@@ -15,10 +15,12 @@
 // under the License.
 
 import ballerina/ai;
+import ballerina/time;
+import ballerina/data.jsondata;
 
 isolated function generateFilter(ai:MetadataFilters|ai:MetadataFilter node) returns string {
     if node is ai:MetadataFilter {
-        return string ` ${node.key} ${node.operator} ${generateValueField(node.value)} `;
+        return string ` metadata["${node.key}"] ${node.operator} ${generateValueField(node.value)} `;
     }
     string condition = string ` ${node.condition.toString().toUpperAscii()} `;
     string[] filters = [];
@@ -39,6 +41,9 @@ isolated function generateFilter(ai:MetadataFilters|ai:MetadataFilter node) retu
 }
 
 isolated function generateValueField(json value) returns string {
+    if value is time:Utc {
+        return string `"${time:utcToString(value)}"`;
+    }
     if value is string {
         return string `"${value}"`;
     }
@@ -66,4 +71,31 @@ isolated function combineElements(string[] parts, string separator) returns stri
         first = false;
     }
     return result;
+}
+
+type MetadataValues record {};
+
+isolated function buildVectorMatch(string id, record {}? outputData, 
+                                   float similarityScore, string[] outputFields) returns ai:VectorMatch|error {
+    record {} metadata = {};
+    MetadataValues? metadataValues = check jsondata:parseString(outputData["metadata"].toString());
+    if metadataValues !is () {
+        foreach string fieldName in metadataValues.keys() {
+            anydata metadataValue = metadataValues[fieldName];
+            time:Utc|time:Error utcFromString = time:utcFromString(metadataValue.toString());
+            metadata[fieldName] = utcFromString is time:Utc ? utcFromString : metadataValue;           
+        }
+    }
+    ai:TextChunk chunk = {
+        content: outputData !is () && outputData.hasKey("content") ? 
+            check outputData["content"].cloneWithType() : "",
+        metadata: check metadata.cloneWithType()
+    };
+    return {
+        id: id,
+        embedding: outputData !is () && outputData.hasKey("vector") ? 
+            check outputData["vector"].cloneWithType() : [],
+        chunk,
+        similarityScore: similarityScore
+    };
 }

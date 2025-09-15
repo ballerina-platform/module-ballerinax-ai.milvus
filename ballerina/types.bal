@@ -23,5 +23,5 @@ public type Configuration record {|
     # The name of the field to contain the primary key
     string primaryKeyField = "id";
     # Specifies the names of additional fields to include in the search results
-    string[] additionalFields = ["content", "type", "vector"];
+    string[] additionalFields = [];
 |};
