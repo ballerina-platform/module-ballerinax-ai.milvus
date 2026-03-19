@@ -3,8 +3,9 @@ org = "ballerinax"
 name = "ai.milvus"
 version = "@toml.version@"
 authors = ["Ballerina"]
-keywords = ["vector", "vector store", "vector search", "Vendor/Milvus", "Area/AI", "Type/Util"]
+keywords = ["vector", "vector store", "vector search", "Vendor/Milvus", "Area/AI", "Type/Connector"]
 repository = "https://github.com/ballerina-platform/module-ballerinax-ai.milvus"
+icon = "icon.png"
 license = ["Apache-2.0"]
 distribution = "2201.12.0"
 
