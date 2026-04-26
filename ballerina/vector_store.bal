@@ -90,7 +90,7 @@ public isolated class VectorStore {
                         }
                     }
                 }
-                properties["metadata"] = metadataValues.toJsonString();
+                properties["metadata"] = metadataValues;
                 string? entryId = entry.id;
                 int primaryKeyValue = entryId is () ?
                     check random:createIntInRange(1, int:MAX_VALUE) :
