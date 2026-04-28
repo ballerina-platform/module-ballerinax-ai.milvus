@@ -15,8 +15,9 @@
 // under the License.
 
 import ballerina/ai;
-import ballerinax/milvus;
+import ballerina/random;
 import ballerina/time;
+import ballerinax/milvus;
 
 # Milvus Vector Store implementation with support for Dense, Sparse, and Hybrid vector search modes.
 #
@@ -90,12 +91,16 @@ public isolated class VectorStore {
                     }
                 }
                 properties["metadata"] = metadataValues;
+                string? entryId = entry.id;
+                int primaryKeyValue = entryId is () ?
+                    check random:createIntInRange(1, int:MAX_VALUE) :
+                    check int:fromString(entryId);
                 check self.milvusClient->upsert({
                     collectionName: self.config.collectionName,
                     data: {
                         primaryKey: {
                             fieldName: self.primaryKeyField,
-                            value: check int:fromString(check entry.id.cloneWithType())
+                            value: primaryKeyValue
                         },
                         vectors: check entry.embedding.cloneWithType(),
                         properties
