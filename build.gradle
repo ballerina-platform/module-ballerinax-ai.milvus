@@ -19,7 +19,7 @@
 import org.apache.tools.ant.taskdefs.condition.Os
 
 plugins {
-    id "com.github.johnrengelman.shadow"
+    id "com.gradleup.shadow"
     id "de.undercouch.download"
     id "net.researchgate.release"
 }
@@ -31,6 +31,9 @@ allprojects {
     version = project.version
 
     apply plugin: 'jacoco'
+    jacoco {
+        toolVersion = jacocoVersion
+    }
     apply plugin: 'maven-publish'
 
     repositories {
@@ -63,7 +66,7 @@ allprojects {
     }
 }
 
-task build {
+tasks.named('build') {
     dependsOn(":ai.milvus-ballerina:build")
     dependsOn(":ai.milvus-examples:build")
 }

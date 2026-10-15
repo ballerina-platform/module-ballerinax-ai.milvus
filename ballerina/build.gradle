@@ -17,6 +17,13 @@
  */
 
 import org.apache.tools.ant.taskdefs.condition.Os
+import org.gradle.process.ExecOperations
+
+import javax.inject.Inject
+
+abstract class BallerinaExecHelper {
+    @Inject abstract ExecOperations getExecOperations()
+}
 
 plugins {
     id 'io.ballerina.plugin'
@@ -48,7 +55,7 @@ ballerina {
     packageOrganization = packageOrg
     module = packageName
     testCoverageParam = "--code-coverage --coverage-format=xml"
-    isConnector = true
+    connector = true
     langVersion = ballerinaLangVersion
     platform = "any"
 }
@@ -74,8 +81,9 @@ task updateTomlFiles {
 }
 
 task commitTomlFiles {
+    def execHelper = project.objects.newInstance(BallerinaExecHelper)
     doLast {
-        project.exec {
+        execHelper.execOperations.exec {
             ignoreExitValue true
             if (Os.isFamily(Os.FAMILY_WINDOWS)) {
                 commandLine 'cmd', '/c', "git commit -m \"[Automated] Update the toml files\" Ballerina.toml Dependencies.toml"
@@ -87,11 +95,12 @@ task commitTomlFiles {
 }
 
 task startMilvusServer() {
+    def execHelper = project.objects.newInstance(BallerinaExecHelper)
     doLast {
         if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
             def stdOut = new ByteArrayOutputStream()
             // Check if Milvus container is already running
-            exec {
+            execHelper.execOperations.exec {
                 commandLine 'sh', '-c', "docker ps --filter name=milvus-standalone --filter status=running --format '{{.Names}}'"
                 standardOutput = stdOut
                 ignoreExitValue = true
@@ -114,7 +123,7 @@ task startMilvusServer() {
                 }
                 // Relax permissions for test environment (safe in CI/local only)
                 try {
-                    exec {
+                    execHelper.execOperations.exec {
                         commandLine 'sh', '-c', "chmod -R 777 '${volumeBase.absolutePath}'"
                         ignoreExitValue = true
                     }
@@ -122,7 +131,7 @@ task startMilvusServer() {
                     // Best-effort; continue even if chmod isn't available
                 }
                 def runOut = new ByteArrayOutputStream()
-                exec {
+                execHelper.execOperations.exec {
                     workingDir composeDir
                     // Pass DOCKER_VOLUME_DIRECTORY explicitly to avoid ambiguity with relative paths
                     commandLine 'sh', '-c', "DOCKER_VOLUME_DIRECTORY='${volumeBase.absolutePath}' docker compose -f compose.yml up -d"
@@ -139,7 +148,7 @@ task startMilvusServer() {
                 boolean isHealthy = false
                 while (waitedSeconds < timeoutSeconds) {
                     def healthOut = new ByteArrayOutputStream()
-                    exec {
+                    execHelper.execOperations.exec {
                         commandLine 'sh', '-c', "docker ps --filter name=milvus-standalone --format '{{.Status}}'"
                         standardOutput = healthOut
                         ignoreExitValue = true
@@ -164,11 +173,12 @@ task startMilvusServer() {
 }
 
 task stopMilvusServer() {
+    def execHelper = project.objects.newInstance(BallerinaExecHelper)
     doLast {
         if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
             def stdOut = new ByteArrayOutputStream()
             // Check if Milvus container is running
-            exec {
+            execHelper.execOperations.exec {
                 commandLine 'sh', '-c', "docker ps --filter name=milvus-standalone --filter status=running --format '{{.Names}}'"
                 standardOutput = stdOut
                 ignoreExitValue = true
@@ -178,7 +188,7 @@ task stopMilvusServer() {
                 def composeDir = "$project.projectDir/tests/resources/server"
                 def volumeBase = new File("${project.rootDir}/build/milvus")
                 def runOut = new ByteArrayOutputStream()
-                exec {
+                execHelper.execOperations.exec {
                     workingDir composeDir
                     commandLine 'sh', '-c', "DOCKER_VOLUME_DIRECTORY='${volumeBase.absolutePath}' docker compose -f compose.yml down"
                     standardOutput = runOut
